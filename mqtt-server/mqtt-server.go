@@ -63,11 +63,13 @@ func handleMessages(msgchan <-chan packets.ControlPacket, addchan <-chan Client,
 	for {
 		select {
 		case msg := <-msgchan:
+			// example of publish to all clients...
 			for _, ch := range clients {
 				go func(mch chan packets.ControlPacket) {
 					mch <- msg
 				}(ch)
 			}
+
 		case client := <-addchan:
 			clients[client.conn] = client.ch
 		case client := <-rmchan:
