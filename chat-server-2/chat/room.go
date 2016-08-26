@@ -9,44 +9,44 @@ type Room struct {
 	outgoing chan string
 }
 
-func (chatRoom *Room) Broadcast(data string) {
-	for _, client := range chatRoom.clients {
+func (room *Room) Broadcast(data string) {
+	for _, client := range room.clients {
 		client.outgoing <- data
 	}
 }
 
-func (chatRoom *Room) Join(connection net.Conn) {
+func (room *Room) Join(connection net.Conn) {
 	client := NewClient(connection)
-	chatRoom.clients = append(chatRoom.clients, client)
+	room.clients = append(room.clients, client)
 	go func() {
 		for {
-			chatRoom.incoming <- <-client.incoming
+			room.incoming <- <-client.incoming
 		}
 	}()
 }
 
-func (chatRoom *Room) Listen() {
+func (room *Room) Listen() {
 	go func() {
 		for {
 			select {
-			case data := <-chatRoom.incoming:
-				chatRoom.Broadcast(data)
-			case conn := <-chatRoom.Joins:
-				chatRoom.Join(conn)
+			case data := <-room.incoming:
+				room.Broadcast(data)
+			case conn := <-room.Joins:
+				room.Join(conn)
 			}
 		}
 	}()
 }
 
 func NewRoom() *Room {
-	chatRoom := &Room{
+	room := &Room{
 		clients:  make([]*Client, 0),
 		Joins:    make(chan net.Conn),
 		incoming: make(chan string),
 		outgoing: make(chan string),
 	}
 
-	chatRoom.Listen()
+	room.Listen()
 
-	return chatRoom
+	return room
 }
