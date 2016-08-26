@@ -1,22 +1,23 @@
 package main
 
 import (
+	"github.com/giovibal/go-examples/mqtt-server/client"
+	"github.com/giovibal/go-examples/mqtt-server/packets"
 	"log"
 	"net"
-	"github.com/giovibal/go-examples/mqtt-server/packets"
 )
 
 func main() {
-	ln, err := net.Listen("tcp", ":6000")
+	ln, err := net.Listen("tcp", ":1883")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	msgchan := make(chan packets.ControlPacket)
-	addchan := make(chan Client)
-	rmchan := make(chan Client)
+	publishchan := make(chan *packets.PublishPacket, 8)
+	addchan := make(chan *client.Client, 4)
+	rmchan := make(chan *client.Client, 4)
 
-	go handleMessages(msgchan, addchan, rmchan)
+	go handleMessages(publishchan, addchan, rmchan)
 
 	for {
 		conn, err := ln.Accept()
@@ -24,88 +25,45 @@ func main() {
 			log.Println(err)
 			continue
 		}
-		go handleConnection(conn, msgchan, addchan, rmchan)
+		go handleConnection(conn, publishchan, addchan, rmchan)
 	}
 }
 
-func handleConnection(c net.Conn, msgchan chan<- packets.ControlPacket, addchan chan<- Client, rmchan chan<- Client) {
-	//bufc := bufio.NewReader(c)
-	defer c.Close()
-
-	// create the client instance
-	client := Client{
-		conn:     c,
-		ch:       make(chan packets.ControlPacket),
-	}
-
-
-	// send "new client" message/event
-	addchan <- client
-	// ensure "remove client" message/event at end
+func handleConnection(conn net.Conn, publishchan chan<- *packets.PublishPacket, addchan chan<- *client.Client, rmchan chan<- *client.Client) {
+	//bufconn := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+	c := client.New(conn)
 	defer func() {
-		//msgchan <- fmt.Sprintf("User %s left the chat room.\n", client.conn)
-		log.Printf("Connection from %v closed.\n", c.RemoteAddr())
-		rmchan <- client
+		conn.Close()
+		log.Printf("Connection from %v closed.\n", conn.RemoteAddr())
+		rmchan <- c
 	}()
 
-	//io.WriteString(c, fmt.Sprintf("Welcome, %s!\n\n", client.conn))
-	//msgchan <- fmt.Sprintf("New user %s has joined the chat room.\n", client.conn)
-
-	msgchan <- packets.NewControlPacket(packets.Connack);
-
-	go client.ReadMessagesInto(msgchan)
-	client.WriteMessagesFrom(client.ch)
+	log.Printf("Connection from %v.\n", conn.RemoteAddr())
+	go c.ReadMessagesInto(publishchan, addchan, rmchan)
+	c.WriteMessagesFrom(c.Ch)
 }
 
-
-func handleMessages(msgchan <-chan packets.ControlPacket, addchan <-chan Client, rmchan <-chan Client) {
-	clients := make(map[net.Conn]chan packets.ControlPacket)
+func handleMessages(publishchan <-chan *packets.PublishPacket, addchan <-chan *client.Client, rmchan <-chan *client.Client) {
+	clients := make(map[net.Conn]*client.Client)
 	for {
 		select {
-		case msg := <-msgchan:
+		case msg := <-publishchan:
 			// example of publish to all clients...
-			for _, ch := range clients {
-				go func(mch chan packets.ControlPacket) {
-					mch <- msg
-				}(ch)
+			for _, c := range clients {
+				// check subscription match
+				publishingTopic := msg.TopicName
+				ok, _ := c.IsSubscribed(publishingTopic)
+				if ok {
+					// TODO: look at mqtt specs for qos handling...
+					//msg.Qos = subscriptionQos
+					c.WritePublishMessage(msg)
+				}
 			}
 
 		case client := <-addchan:
-			clients[client.conn] = client.ch
+			clients[client.Conn] = client
 		case client := <-rmchan:
-			delete(clients, client.conn)
-		}
-	}
-}
-
-
-
-// Client
-type Client struct {
-	conn net.Conn
-	ch   chan packets.ControlPacket
-}
-
-// tcp conn >>> channel
-func (c Client) ReadMessagesInto(ch chan<- packets.ControlPacket) {
-	var err error
-	var cp packets.ControlPacket
-	for {
-		if cp, err = packets.ReadPacket(c.conn); err != nil {
-			break
-		}
-		log.Printf(">> %v \n", cp.String())
-		ch <- cp
-	}
-}
-
-// tcp conn <<< channel
-func (c Client) WriteMessagesFrom(ch <-chan packets.ControlPacket) {
-	for msg := range ch {
-		//_, err := io.WriteString(c.conn, msg)
-		err := msg.Write(c.conn)
-		if err != nil {
-			return
+			delete(clients, client.Conn)
 		}
 	}
 }

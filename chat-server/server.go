@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
-	"bufio"
 	"strings"
-	"io"
 )
 
 func main() {
@@ -62,7 +62,6 @@ func handleConnection(c net.Conn, msgchan chan<- string, addchan chan<- Client, 
 	client.WriteLinesFrom(client.ch)
 }
 
-
 func handleMessages(msgchan <-chan string, addchan <-chan Client, rmchan <-chan Client) {
 	clients := make(map[net.Conn]chan string)
 	for {
@@ -91,11 +90,10 @@ func promptNick(c net.Conn, bufc *bufio.Reader) string {
 	return string(nick)
 }
 
-
 // Client
 type Client struct {
-	conn net.Conn
-	ch   chan string
+	conn     net.Conn
+	ch       chan string
 	nickname string
 }
 
