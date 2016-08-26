@@ -4,7 +4,7 @@ import "net"
 
 type Room struct {
 	clients  []*Client
-	Joins    chan net.Conn
+	joins    chan net.Conn
 	incoming chan string
 	outgoing chan string
 }
@@ -31,17 +31,21 @@ func (room *Room) Listen() {
 			select {
 			case data := <-room.incoming:
 				room.Broadcast(data)
-			case conn := <-room.Joins:
+			case conn := <-room.joins:
 				room.Join(conn)
 			}
 		}
 	}()
 }
 
+func (room *Room) HandleNewConnection(connection net.Conn) {
+	room.joins <- connection
+}
+
 func NewRoom() *Room {
 	room := &Room{
 		clients:  make([]*Client, 0),
-		Joins:    make(chan net.Conn),
+		joins:    make(chan net.Conn),
 		incoming: make(chan string),
 		outgoing: make(chan string),
 	}

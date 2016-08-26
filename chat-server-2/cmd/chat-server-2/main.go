@@ -13,6 +13,6 @@ func main() {
 
 	for {
 		conn, _ := listener.Accept()
-		chatRoom.Joins <- conn
+		chatRoom.HandleNewConnection(conn)
 	}
 }
