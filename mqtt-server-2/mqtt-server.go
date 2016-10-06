@@ -5,6 +5,7 @@ import (
 	"github.com/giovibal/go-examples/mqtt-server-2/packets"
 	"log"
 	"net"
+	"fmt"
 )
 
 func main() {
@@ -12,6 +13,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("Listen on %s\n", "1883")
 
 	publishchan := make(chan *packets.PublishPacket, 8)
 	addchan := make(chan *client.Client, 4)
@@ -44,7 +46,6 @@ func handleConnection(conn net.Conn, publishchan chan<- *packets.PublishPacket, 
 
 	go c.HandleMqttProtocol(publishchan, addchan, rmchan)
 	c.Listen()
-
 }
 
 func handleMessages(publishchan <-chan *packets.PublishPacket, addchan <-chan *client.Client, rmchan <-chan *client.Client) {

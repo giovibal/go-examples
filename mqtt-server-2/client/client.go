@@ -37,25 +37,24 @@ func New(connection net.Conn) *Client {
 
 	client := &Client{
 		Conn:     connection,
-		incoming: make(chan packets.ControlPacket),
-		outgoing: make(chan packets.ControlPacket),
 		reader:   reader,
 		writer:   writer,
+		incoming: make(chan packets.ControlPacket),
+		outgoing: make(chan packets.ControlPacket),
+		Subscriptions: make(map[string]Subscription),
 	}
 
-	client.Listen()
+	//client.Listen()
 
 	return client
 }
 
 // tcp conn >>> channel
 func (c *Client) HandleMqttProtocol(publishchan chan<- *packets.PublishPacket, addchan chan<- *Client, rmchan chan<- *Client) {
-	//var err error
-	//var cp packets.ControlPacket
 	for {
 		select {
 		case cp := <- c.incoming:
-			log.Printf(">> %v \n", cp.String())
+			//log.Printf(">> %v \n", cp.String())
 
 			msgType := cp.GetMessageType()
 			switch msgType {
@@ -111,13 +110,13 @@ func (c *Client) HandleMqttProtocol(publishchan chan<- *packets.PublishPacket, a
 					publishchan <- pubMsg
 					pubAck := packets.NewControlPacket(packets.Puback).(*packets.PubackPacket)
 					pubAck.MessageID = cp.Details().MessageID
-					pubAck.Write(c.writer)
+					c.outgoing <- pubAck
 					break
 				case 2:
 					publishchan <- pubMsg
 					pubRec := packets.NewControlPacket(packets.Pubrec).(*packets.PubrecPacket)
 					pubRec.MessageID = cp.Details().MessageID
-					pubRec.Write(c.writer)
+					c.outgoing <- pubRec
 					break
 				}
 			case packets.Pubrec:
@@ -149,13 +148,13 @@ func (c *Client) HandleMqttProtocol(publishchan chan<- *packets.PublishPacket, a
 
 
 // tcp conn <<< channel
-func (c *Client) WriteMessagesFrom(ch <-chan *packets.PublishPacket) {
+func (client *Client) WriteMessagesFrom(ch <-chan *packets.PublishPacket) {
 	for msg := range ch {
-		err := msg.Write(c.writer)
+		err := msg.Write(client.writer)
 		if err != nil {
 			return
 		}
-		c.writer.Flush()
+		client.writer.Flush()
 	}
 }
 
@@ -170,22 +169,24 @@ func (client *Client) Read() {
 }
 func (client *Client) Write() {
 	for data := range client.outgoing {
-		data.Write(client.writer)
+		err := data.Write(client.writer)
+		if err != nil {
+			return
+		}
 		client.writer.Flush()
 	}
 }
 
 func (client *Client) Listen() {
 	go client.Read()
-	go client.Write()
+	//go client.Write()
+	client.Write()
 }
 
 
 
 
 func (c *Client) IsSubscribed(publishingTopic string) (bool, byte) {
-	var topicMatches bool = false
-	var calculatedQos byte = 0x0
 	for _, subscription := range c.Subscriptions {
 		//regexp, err := toRegexPattern(subscriptionTopicFilter)
 		//if err != nil {
@@ -193,17 +194,17 @@ func (c *Client) IsSubscribed(publishingTopic string) (bool, byte) {
 		//	topicMatches = false
 		//	calculatedQos = 0x0
 		//}
-		regexp := subscription.Regexp
-		topicMatches := regexp.MatchString(publishingTopic)
-		calculatedQos = subscription.Qos
+		re := subscription.Regexp
+		topicMatches := re.MatchString(publishingTopic)
+		calculatedQos := subscription.Qos
 		return topicMatches, calculatedQos
 	}
-	return topicMatches, calculatedQos
+	return false, 0x00
 }
 func (c *Client) WritePublishMessage(msg *packets.PublishPacket) {
 	go func(ch chan packets.ControlPacket) {
 		ch <- msg
-	}(c.incoming)
+	}(c.outgoing)
 }
 
 func toRegexPattern(subscribedTopic string) (*regexp.Regexp, error) {
@@ -211,6 +212,6 @@ func toRegexPattern(subscribedTopic string) (*regexp.Regexp, error) {
 	regexPattern = subscribedTopic
 	regexPattern = strings.Replace(regexPattern, "#", ".*", -1)
 	regexPattern = strings.Replace(regexPattern, "+", "[^/]*", -1)
-	pattern, err := regexp.Compile(regexPattern)
+	pattern, err := regexp.Compile("^"+regexPattern+"$")
 	return pattern, err
 }
