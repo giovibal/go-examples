@@ -1,39 +1,38 @@
-package routing
+package mqtt
 
 import (
-	"github.com/giovibal/go-examples/mqtt-server-2/client"
 	"github.com/giovibal/go-examples/mqtt-server-2/packets"
 	"net"
 )
 
 type Router struct {
-	clients map[net.Conn]*client.Client
+	clients map[net.Conn]*Client
 
 	publishchan chan *packets.PublishPacket
-	addchan     chan *client.Client
-	rmchan      chan *client.Client
+	addchan     chan *Client
+	rmchan      chan *Client
 }
 
-func New() *Router {
+func NewRouter() *Router {
 	return &Router{
-		clients: make(map[net.Conn]*client.Client),
+		clients: make(map[net.Conn]*Client),
 		publishchan: make(chan *packets.PublishPacket, 8),
-		addchan: make(chan *client.Client, 4),
-		rmchan: make(chan *client.Client, 4),
+		addchan: make(chan *Client, 4),
+		rmchan: make(chan *Client, 4),
 	}
 }
 
-func (router *Router) addClient(client *client.Client) {
+func (router *Router) addClient(client *Client) {
 	router.clients[client.Conn] = client
 }
-func (router *Router) removeClient(client *client.Client) {
+func (router *Router) removeClient(client *Client) {
 	delete(router.clients, client.Conn)
 }
 
-func (router *Router) Subscribe(c *client.Client)  {
+func (router *Router) Subscribe(c *Client)  {
 	router.addchan <- c
 }
-func (router *Router) Unsubscribe(c *client.Client)  {
+func (router *Router) Unsubscribe(c *Client)  {
 	router.rmchan <- c
 }
 func (router *Router) Publish(pubMsg *packets.PublishPacket) {
@@ -41,7 +40,6 @@ func (router *Router) Publish(pubMsg *packets.PublishPacket) {
 }
 
 
-//func (router *Router) RouteMessages(publishchan <-chan *packets.PublishPacket, addchan <-chan *client.Client, rmchan <-chan *client.Client) {
 func (router *Router) RouteMessages() {
 	clients := router.clients
 	for {

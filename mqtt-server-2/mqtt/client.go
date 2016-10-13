@@ -1,4 +1,4 @@
-package client
+package mqtt
 
 import (
 	"bufio"
@@ -14,7 +14,7 @@ type Client struct {
 	outgoing      chan packets.ControlPacket
 	Subscriptions map[string]*Subscription
 }
-func New(connection net.Conn) *Client {
+func NewClient(connection net.Conn) *Client {
 	writer := bufio.NewWriter(connection)
 	reader := bufio.NewReader(connection)
 
@@ -32,15 +32,8 @@ func New(connection net.Conn) *Client {
 	return client
 }
 
-type Router interface {
-	Subscribe(c *Client)
-	Unsubscribe(c *Client)
-	Publish(*packets.PublishPacket)
-}
-
 // tcp conn >>> channel
-//func (c *Client) HandleMqttProtocol(publishchan chan<- *packets.PublishPacket, addchan chan<- *Client, rmchan chan<- *Client) {
-func (c *Client) HandleMqttProtocol(router Router) {
+func (c *Client) HandleMqttProtocol(router *Router) {
 	for {
 		select {
 		case cp := <- c.incoming:
