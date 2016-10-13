@@ -4,16 +4,20 @@ import (
 	"bufio"
 	"github.com/giovibal/go-examples/mqtt-server-2/packets"
 	"net"
+	"io"
 )
 
 type Client struct {
 	Conn          net.Conn
+	ID            string
 	reader        *bufio.Reader
 	writer        *bufio.Writer
 	incoming      chan packets.ControlPacket
 	outgoing      chan packets.ControlPacket
 	Subscriptions map[string]*Subscription
+	SubscriptionCache map[string]bool
 }
+
 func NewClient(connection net.Conn) *Client {
 	writer := bufio.NewWriter(connection)
 	reader := bufio.NewReader(connection)
@@ -25,15 +29,28 @@ func NewClient(connection net.Conn) *Client {
 		incoming: make(chan packets.ControlPacket),
 		outgoing: make(chan packets.ControlPacket),
 		Subscriptions: make(map[string]*Subscription),
+		SubscriptionCache: make(map[string]bool),
 	}
+	return client
+}
+func NewClientRW(r io.Reader, w io.Writer) *Client {
+	reader := bufio.NewReader(r)
+	writer := bufio.NewWriter(w)
 
-	//client.Listen()
-
+	client := &Client{
+		//Conn:     connection,
+		reader:   reader,
+		writer:   writer,
+		incoming: make(chan packets.ControlPacket),
+		outgoing: make(chan packets.ControlPacket),
+		Subscriptions: make(map[string]*Subscription),
+		SubscriptionCache: make(map[string]bool),
+	}
 	return client
 }
 
 // tcp conn >>> channel
-func (c *Client) HandleMqttProtocol(router *Router) {
+func (c *Client) handleMqttProtocol(router *Router) {
 	for {
 		select {
 		case cp := <- c.incoming:
@@ -43,6 +60,9 @@ func (c *Client) HandleMqttProtocol(router *Router) {
 			switch msgType {
 
 			case packets.Connect:
+				connectMsg := cp.(*packets.ConnectPacket)
+				c.ID = connectMsg.ClientIdentifier
+
 				connackMsg := packets.NewControlPacket(packets.Connack).(*packets.ConnackPacket)
 				c.outgoing <- connackMsg
 				break
@@ -161,26 +181,29 @@ func (client *Client) Write() {
 	}
 }
 
-func (client *Client) Listen() {
-	go client.Read()
-	client.Write()
-}
-
-
-
-
-func (c *Client) IsSubscribed(publishingTopic string) (bool, byte) {
-	for _, subscription := range c.Subscriptions {
-		re := subscription.Regexp
-		topicMatches := re.MatchString(publishingTopic)
-		calculatedQos := subscription.Qos
-		return topicMatches, calculatedQos
+func (c *Client) IsSubscribed(publishingTopic string) bool {
+	_, present := c.SubscriptionCache[publishingTopic]
+	if present {
+		return true
+	} else {
+		for _, subscription := range c.Subscriptions {
+			if subscription.IsSubscribed(publishingTopic) {
+				c.SubscriptionCache[publishingTopic] = true
+				return true
+			}
+		}
 	}
-	return false, 0x00
-	//return true, 0x00
+	return false
 }
+
 func (c *Client) WritePublishMessage(msg *packets.PublishPacket) {
 	go func(ch chan packets.ControlPacket) {
 		ch <- msg
 	}(c.outgoing)
+}
+
+func (client *Client) Start(router *Router) {
+	go client.handleMqttProtocol(router)
+	go client.Read()
+	client.Write()
 }

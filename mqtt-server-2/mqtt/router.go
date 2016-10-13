@@ -2,11 +2,10 @@ package mqtt
 
 import (
 	"github.com/giovibal/go-examples/mqtt-server-2/packets"
-	"net"
 )
 
 type Router struct {
-	clients map[net.Conn]*Client
+	clients map[string]*Client
 
 	publishchan chan *packets.PublishPacket
 	addchan     chan *Client
@@ -15,7 +14,7 @@ type Router struct {
 
 func NewRouter() *Router {
 	return &Router{
-		clients: make(map[net.Conn]*Client),
+		clients: make(map[string]*Client),
 		publishchan: make(chan *packets.PublishPacket, 8),
 		addchan: make(chan *Client, 4),
 		rmchan: make(chan *Client, 4),
@@ -23,10 +22,10 @@ func NewRouter() *Router {
 }
 
 func (router *Router) addClient(client *Client) {
-	router.clients[client.Conn] = client
+	router.clients[client.ID] = client
 }
 func (router *Router) removeClient(client *Client) {
-	delete(router.clients, client.Conn)
+	delete(router.clients, client.ID)
 }
 
 func (router *Router) Subscribe(c *Client)  {
@@ -39,8 +38,10 @@ func (router *Router) Publish(pubMsg *packets.PublishPacket) {
 	router.publishchan <- pubMsg
 }
 
-
-func (router *Router) RouteMessages() {
+func (router *Router) Start() {
+	go router.routeMessages()
+}
+func (router *Router) routeMessages() {
 	clients := router.clients
 	for {
 		select {
@@ -49,7 +50,7 @@ func (router *Router) RouteMessages() {
 			for _, c := range clients {
 				// check subscription match
 				publishingTopic := msg.TopicName
-				ok, _ := c.IsSubscribed(publishingTopic)
+				ok := c.IsSubscribed(publishingTopic)
 				if ok {
 					// TODO: look at mqtt specs for qos handling...
 					//msg.Qos = subscriptionQos

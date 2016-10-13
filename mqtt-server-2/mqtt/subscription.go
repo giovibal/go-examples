@@ -35,12 +35,11 @@ func toRegexPattern(subscribedTopic string) (*regexp.Regexp, error) {
 	return pattern, err
 }
 
-func (s *Subscription) IsSubscribed(publishingTopic string) (bool, byte) {
+func (s *Subscription) IsSubscribed(publishingTopic string) bool {
 	if strings.Compare(s.TopicFilter, publishingTopic) == 0 {
-		return true, s.Qos
+		return true
 	} else {
 		topicMatches := s.Regexp.MatchString(publishingTopic)
-		calculatedQos := s.Qos
-		return topicMatches, calculatedQos
+		return topicMatches
 	}
 }
