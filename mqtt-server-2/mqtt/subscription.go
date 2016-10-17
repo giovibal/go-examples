@@ -1,8 +1,8 @@
 package mqtt
 
 import (
-	"regexp"
 	"log"
+	"regexp"
 	"strings"
 )
 
@@ -12,8 +12,6 @@ type Subscription struct {
 	Regexp      *regexp.Regexp
 }
 
-
-
 func NewSubscription(topic string, qos byte) *Subscription {
 	re, err := toRegexPattern(topic)
 	if err != nil {
@@ -21,8 +19,8 @@ func NewSubscription(topic string, qos byte) *Subscription {
 	}
 	s := &Subscription{
 		TopicFilter: topic,
-		Qos: qos,
-		Regexp: re,
+		Qos:         qos,
+		Regexp:      re,
 	}
 	return s
 }
@@ -31,7 +29,7 @@ func toRegexPattern(subscribedTopic string) (*regexp.Regexp, error) {
 	regexPattern = subscribedTopic
 	regexPattern = strings.Replace(regexPattern, "#", ".*", -1)
 	regexPattern = strings.Replace(regexPattern, "+", "[^/]*", -1)
-	pattern, err := regexp.Compile("^"+regexPattern+"$")
+	pattern, err := regexp.Compile("^" + regexPattern + "$")
 	return pattern, err
 }
 

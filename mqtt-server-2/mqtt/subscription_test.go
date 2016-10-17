@@ -4,7 +4,6 @@ import (
 	"testing"
 )
 
-
 func BenchmarkSubscription_IsSubscribedEQ(b *testing.B) {
 	s := NewSubscription("/test.it/jz/snapshot/snapshot/cis/1021", 0x00)
 	for n := 0; n < b.N; n++ {

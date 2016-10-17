@@ -13,10 +13,9 @@ import (
 //written
 type ControlPacket interface {
 	Write(io.Writer) error
-	Unpack(io.Reader)
+	Unpack(io.Reader) error
 	String() string
 	Details() Details
-	GetMessageType() byte
 }
 
 //PacketNames maps the constants for each of the MQTT packet types
@@ -117,8 +116,8 @@ func ReadPacket(r io.Reader) (cp ControlPacket, err error) {
 	if err != nil {
 		return nil, err
 	}
-	cp.Unpack(bytes.NewBuffer(packetBytes))
-	return cp, nil
+	err = cp.Unpack(bytes.NewBuffer(packetBytes))
+	return cp, err
 }
 
 //NewControlPacket is used to create a new ControlPacket of the type specified
@@ -220,10 +219,6 @@ type FixedHeader struct {
 
 func (fh FixedHeader) String() string {
 	return fmt.Sprintf("%s: dup: %t qos: %d retain: %t rLength: %d", PacketNames[fh.MessageType], fh.Dup, fh.Qos, fh.Retain, fh.RemainingLength)
-}
-
-func (fh FixedHeader) GetMessageType() byte {
-	return fh.MessageType
 }
 
 func boolToByte(b bool) byte {

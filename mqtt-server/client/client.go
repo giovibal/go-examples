@@ -3,11 +3,11 @@ package client
 import (
 	"bufio"
 	"github.com/giovibal/go-examples/mqtt-server/packets"
+	"io"
 	"log"
 	"net"
 	"regexp"
 	"strings"
-	"io"
 )
 
 type Client struct {

@@ -1,10 +1,9 @@
 package main
 
 import (
-	"net"
 	"github.com/giovibal/go-examples/chat-server-2/chat"
+	"net"
 )
-
 
 func main() {
 	chatRoom := chat.NewRoom()
