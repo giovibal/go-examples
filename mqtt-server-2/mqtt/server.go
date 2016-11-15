@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var clients = make(map[net.Conn]*Client)
+//var clients = make(map[net.Conn]*Client)
 
 func StartTcpServer(laddr string, router *Router) {
 	ln, err := net.Listen("tcp", laddr)
@@ -185,7 +185,7 @@ func handleMqttProtocol(router *Router, client *Client) {
 				client.Keepalive.Reset()
 				qos := cp.Details().Qos
 				pubMsg := cp.(*packets.PublishPacket)
-				log.Printf("%v: PUBLISH qos(%v)", client.ID, pubMsg.Qos)
+				//log.Printf("%v: PUBLISH qos(%v)", client.ID, pubMsg.Qos)
 
 				switch qos {
 				case 0:
@@ -210,15 +210,15 @@ func handleMqttProtocol(router *Router, client *Client) {
 				// PUBACK (receiver) response to PUBLISH in QOS=1
 				client.queue.DequeueMessage()
 
-				pubAck := cp.(*packets.PubackPacket)
-				log.Printf("%v: PUBACK qos(%v)", client.ID, pubAck.Qos)
+				//pubAck := cp.(*packets.PubackPacket)
+				//log.Printf("%v: PUBACK qos(%v)", client.ID, pubAck.Qos)
 				break
 
 			case *packets.PubrecPacket:
 				client.Keepalive.Reset()
 				// PUBREC (receiver) response to PUBLISH in QOS=2
-				pubRec := cp.(*packets.PubrecPacket)
-				log.Printf("%v: PUBREC qos(%v)", client.ID, pubRec.Qos)
+				//pubRec := cp.(*packets.PubrecPacket)
+				//log.Printf("%v: PUBREC qos(%v)", client.ID, pubRec.Qos)
 				pubRel := packets.NewControlPacket(packets.Pubrel).(*packets.PubrelPacket)
 				pubRel.MessageID = cp.Details().MessageID
 				client.outgoing <- pubRel
@@ -227,8 +227,8 @@ func handleMqttProtocol(router *Router, client *Client) {
 			case *packets.PubrelPacket:
 				client.Keepalive.Reset()
 				// PUBREL (sender) response to PUBREC in QOS=2
-				pubRel := cp.(*packets.PubrelPacket)
-				log.Printf("%v: PUBREL qos(%v)", client.ID, pubRel.Qos)
+				//pubRel := cp.(*packets.PubrelPacket)
+				//log.Printf("%v: PUBREL qos(%v)", client.ID, pubRel.Qos)
 				pubComp := packets.NewControlPacket(packets.Pubcomp).(*packets.PubcompPacket)
 				pubComp.MessageID = cp.Details().MessageID
 				client.outgoing <- pubComp
@@ -239,8 +239,8 @@ func handleMqttProtocol(router *Router, client *Client) {
 				// PUBCOMP (receiver) response to PUBREL in QOS=2
 				client.queue.DequeueMessage()
 
-				pubComp := cp.(*packets.PubcompPacket)
-				log.Printf("%v: PUBCOMP qos(%v)", client.ID, pubComp.Qos)
+				//pubComp := cp.(*packets.PubcompPacket)
+				//log.Printf("%v: PUBCOMP qos(%v)", client.ID, pubComp.Qos)
 				break
 
 			case *packets.PingreqPacket:
