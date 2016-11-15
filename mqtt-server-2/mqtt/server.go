@@ -83,7 +83,7 @@ func handleMqttProtocol(router *Router, client *Client) {
 				client.CleanSession = connectMsg.CleanSession
 				client.Keepalive = NewKeepalive(connectMsg.Keepalive)
 				client.Keepalive.ExpiredCallback = func(t time.Time) {
-					log.Printf("Keepalived time exausted for client: %s", client.ID)
+					log.Printf("Keepalive time exausted for client: %s", client.ID)
 					disconnectAbnormally(client, router)
 				}
 
@@ -184,9 +184,11 @@ func handleMqttProtocol(router *Router, client *Client) {
 				disconnect(client, router)
 				break
 			case *packets.PublishPacket:
+
 				client.Keepalive.Reset()
 				qos := cp.Details().Qos
 				pubMsg := cp.(*packets.PublishPacket)
+				log.Printf("%v: PUBLISH qos(%v)",client.ID, pubMsg.Qos)
 
 				switch qos {
 				case 0:
@@ -205,8 +207,21 @@ func handleMqttProtocol(router *Router, client *Client) {
 					client.outgoing <- pubRec
 					break
 				}
+
+			case *packets.PubackPacket:
+				client.Keepalive.Reset()
+				// PUBACK (receiver) response to PUBLISH in QOS=1
+				client.queue.DequeueMessage()
+
+				pubAck := cp.(*packets.PubackPacket)
+				log.Printf("%v: PUBACK qos(%v)",client.ID, pubAck.Qos)
+				break
+
 			case *packets.PubrecPacket:
 				client.Keepalive.Reset()
+				// PUBREC (receiver) response to PUBLISH in QOS=2
+				pubRec := cp.(*packets.PubrecPacket)
+				log.Printf("%v: PUBREC qos(%v)",client.ID, pubRec.Qos)
 				pubRel := packets.NewControlPacket(packets.Pubrel).(*packets.PubrelPacket)
 				pubRel.MessageID = cp.Details().MessageID
 				client.outgoing <- pubRel
@@ -214,13 +229,21 @@ func handleMqttProtocol(router *Router, client *Client) {
 
 			case *packets.PubrelPacket:
 				client.Keepalive.Reset()
+				// PUBREL (sender) response to PUBREC in QOS=2
+				pubRel := cp.(*packets.PubrelPacket)
+				log.Printf("%v: PUBREL qos(%v)",client.ID, pubRel.Qos)
 				pubComp := packets.NewControlPacket(packets.Pubcomp).(*packets.PubcompPacket)
 				pubComp.MessageID = cp.Details().MessageID
 				client.outgoing <- pubComp
 				break
 
-			case *packets.PubackPacket:
+			case *packets.PubcompPacket:
 				client.Keepalive.Reset()
+				// PUBCOMP (receiver) response to PUBREL in QOS=2
+				client.queue.DequeueMessage()
+
+				pubComp := cp.(*packets.PubcompPacket)
+				log.Printf("%v: PUBCOMP qos(%v)",client.ID, pubComp.Qos)
 				break
 
 			case *packets.PingreqPacket:

@@ -19,7 +19,7 @@ type Client struct {
 	incoming          chan packets.ControlPacket
 	outgoing          chan packets.ControlPacket
 	Subscriptions     map[string]*Subscription
-	SubscriptionCache map[string]bool
+	//SubscriptionCache map[string]bool
 	quit              chan bool
 }
 
@@ -35,7 +35,7 @@ func NewClient(connection net.Conn) *Client {
 		incoming:          make(chan packets.ControlPacket),
 		outgoing:          make(chan packets.ControlPacket),
 		Subscriptions:     make(map[string]*Subscription),
-		SubscriptionCache: make(map[string]bool),
+		//SubscriptionCache: make(map[string]bool),
 		quit:              make(chan bool),
 	}
 	return client
@@ -91,19 +91,33 @@ func (client *Client) waitForQuit() {
 		}
 	}
 }
-func (c *Client) IsSubscribed(publishingTopic string) bool {
-	_, present := c.SubscriptionCache[publishingTopic]
-	if present {
-		return true
-	} else {
-		for _, subscription := range c.Subscriptions {
-			if subscription.IsSubscribed(publishingTopic) {
-				c.SubscriptionCache[publishingTopic] = true
-				return true
+func (c *Client) IsSubscribed(publishingTopic string) (bool, byte) {
+	//_, present := c.SubscriptionCache[publishingTopic]
+	//if present {
+	//	return true
+	//} else {
+	//	for _, subscription := range c.Subscriptions {
+	//		if subscription.IsSubscribed(publishingTopic) {
+	//			c.SubscriptionCache[publishingTopic] = true
+	//			return true
+	//		}
+	//	}
+	//}
+	//return false
+
+	var ret bool
+	var qos byte
+	ret = false
+	qos = 0x00
+	for _, subscription := range c.Subscriptions {
+		if subscription.IsSubscribed(publishingTopic) {
+			ret = true
+			if qos < subscription.Qos {
+				qos = subscription.Qos
 			}
 		}
 	}
-	return false
+	return ret, qos
 }
 func (c *Client) WritePublishMessage(msg *packets.PublishPacket) {
 	//go func(ch chan packets.ControlPacket) {
@@ -119,29 +133,19 @@ func (client *Client) Start(router *Router) {
 }
 
 func (client *Client) CopyTo(other *Client) {
-	other.SubscriptionCache = client.SubscriptionCache
+	//other.SubscriptionCache = client.SubscriptionCache
 	other.Subscriptions= client.Subscriptions
 	other.queue = client.queue
 }
 
 func (client *Client) FlushQueuedMessages() {
-	len := client.queue.queue.Len()
-	if len > 0 {
-		log.Printf("Flush queued messages (%v)", len)
+	queueSize := client.queue.Size()
+	if queueSize > 0 {
+		log.Printf("Flush queued messages (%v)", queueSize)
 		for msg := client.queue.DequeueMessage(); msg != nil; msg = client.queue.DequeueMessage() {
 			client.WritePublishMessage(msg.(*packets.PublishPacket))
 		}
 	}
 }
 
-//func (client *Client) IsConnected() bool {
-//	client.Conn.SetReadDeadline(time.Now().Add(500*time.Millisecond))
-//	_, err := client.Conn.Read(make([]byte, 0))
-//	client.Conn.SetReadDeadline(time.Time{})
-//	if err!=io.EOF{
-//		return false
-//	} else {
-//		return true
-//	}
-//}
 

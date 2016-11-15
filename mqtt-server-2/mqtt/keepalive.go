@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"time"
-	"log"
 )
 
 type Keepalive struct {
@@ -35,8 +34,8 @@ func (k *Keepalive) Start() {
          * If the Keep Alive value is non-zero and the Server does not receive a Control Packet from the Client
          * within one and a half times the Keep Alive time period, it MUST disconnect
 	 */
-	t := time.Now()
-	log.Printf("Keepalive start: %v\n", t)
+	//t := time.Now()
+	//log.Printf("Keepalive start: %v\n", t)
 	if k.Duration == 0 {
 		return
 	}
@@ -44,7 +43,7 @@ func (k *Keepalive) Start() {
 	k.ticker = time.NewTicker(k.Duration)
 	go func() {
 		for t := range k.ticker.C {
-			log.Printf("Keepalive tiker: %v\n", t)
+			//log.Printf("Keepalive tiker: %v\n", t)
 			if k.expired {
 				k.ExpiredCallback(t)
 			} else {

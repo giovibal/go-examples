@@ -14,6 +14,7 @@ type Router struct {
 	unsubscribeChan  chan *Client
 
 	retainStore      map[string]*packets.PublishPacket
+	queues           map[string]*Queue
 }
 
 func NewRouter() *Router {
@@ -24,6 +25,7 @@ func NewRouter() *Router {
 		subscribeChan:    make(chan *Client),
 		unsubscribeChan:  make(chan *Client),
 		retainStore:      make(map[string]*packets.PublishPacket),
+		queues:           make(map[string]*Queue),
 	}
 }
 
@@ -90,11 +92,18 @@ func (router *Router) handleEvents() {
 func sendMessageToClientIfMatch(client *Client, msg *packets.PublishPacket) {
 	// check subscription match
 	publishingTopic := msg.TopicName
-	subscribed := client.IsSubscribed(publishingTopic)
+	subscribed, subscriptionQos := client.IsSubscribed(publishingTopic)
 	if subscribed {
-		log.Printf("sending message to client: %s topic: %s (%s)\n", client.ID, publishingTopic, subscribed)
+		//log.Printf("sending message to client: %s topic: %s (%s)\n", client.ID, publishingTopic, subscribed)
 		// TODO: look at mqtt specs for qos handling...
-		//msg.Qos = subscriptionQos
+		msg.Qos = subscriptionQos
+		if msg.MessageID <= 0 {
+			//log.Fatal("MessageID is 0 !")
+			msg.MessageID = 1
+		}
+		if msg.Qos > 0 {
+			client.queue.EnqueueMessage(msg)
+		}
 		client.WritePublishMessage(msg)
 	}
 }
@@ -109,7 +118,11 @@ func (r *Router) Connected(c *Client) bool {
 	_, present := r.connectedClients[c.ID]
 	return present
 }
-func (r *Router) GetConnected(cid string) *Client {
-	c, _ := r.connectedClients[cid]
+func (r *Router) GetConnected(client_id string) *Client {
+	c, _ := r.connectedClients[client_id]
 	return c
 }
+
+//func (r *Router) Enqueue(msg *packets.PublishPacket) *Client {
+//
+//}

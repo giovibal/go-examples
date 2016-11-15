@@ -10,6 +10,7 @@ type Subscription struct {
 	TopicFilter string
 	Qos         byte
 	Regexp      *regexp.Regexp
+	cache       map[string]bool
 }
 
 func NewSubscription(topic string, qos byte) *Subscription {
@@ -21,6 +22,7 @@ func NewSubscription(topic string, qos byte) *Subscription {
 		TopicFilter: topic,
 		Qos:         qos,
 		Regexp:      re,
+		cache:       make(map[string]bool),
 	}
 	return s
 }
@@ -34,10 +36,22 @@ func toRegexPattern(subscribedTopic string) (*regexp.Regexp, error) {
 }
 
 func (s *Subscription) IsSubscribed(publishingTopic string) bool {
-	if strings.Compare(s.TopicFilter, publishingTopic) == 0 {
-		return true
+	// first get from cache ...
+	var ret, present bool
+	ret, present = s.cache[publishingTopic]
+	if present {
+		return ret
 	} else {
-		topicMatches := s.Regexp.MatchString(publishingTopic)
-		return topicMatches
+		if strings.Compare(s.TopicFilter, publishingTopic) == 0 {
+			ret = true
+		} else {
+			topicMatches := s.Regexp.MatchString(publishingTopic)
+			ret = topicMatches
+		}
+
+		// put result of calculation in cache ...
+		s.cache[publishingTopic] = ret
+
+		return ret
 	}
 }

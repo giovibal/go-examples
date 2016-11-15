@@ -17,7 +17,7 @@ func NewQueue() *Queue {
 
 func (q *Queue) EnqueueMessage(msg interface{}) {
 	q.queue.PushBack(msg)
-	log.Printf("Enqueued (Queue size: %s)\n", q.queue.Len())
+	log.Printf("Enqueued (Queue size: %v)\n", q.queue.Len())
 }
 func (q *Queue) DequeueMessage() interface{} {
 	if q.queue.Len() > 0 {
@@ -29,4 +29,7 @@ func (q *Queue) DequeueMessage() interface{} {
 		log.Printf("Dequeued (Queue size: %v)\n", q.queue.Len())
 		return nil
 	}
+}
+func (q *Queue) Size() int {
+	return q.queue.Len()
 }
