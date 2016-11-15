@@ -9,21 +9,21 @@ type Router struct {
 	clients          map[string]*Client
 	connectedClients map[string]*Client
 
-	publishchan      chan *packets.PublishPacket
-	addchan          chan *Client
-	rmchan           chan *Client
+	publishChan      chan *packets.PublishPacket
+	subscribeChan    chan *Client
+	unsubscribeChan  chan *Client
 
-	retainStore map[string]*packets.PublishPacket
+	retainStore      map[string]*packets.PublishPacket
 }
 
 func NewRouter() *Router {
 	return &Router{
-		clients:     make(map[string]*Client),
-		connectedClients:     make(map[string]*Client),
-		publishchan: make(chan *packets.PublishPacket, 8),
-		addchan:     make(chan *Client, 2),
-		rmchan:      make(chan *Client, 2),
-		retainStore: make(map[string]*packets.PublishPacket),
+		clients:          make(map[string]*Client),
+		connectedClients: make(map[string]*Client),
+		publishChan:      make(chan *packets.PublishPacket),
+		subscribeChan:    make(chan *Client),
+		unsubscribeChan:  make(chan *Client),
+		retainStore:      make(map[string]*packets.PublishPacket),
 	}
 }
 
@@ -35,23 +35,15 @@ func (router *Router) removeClient(c *Client) {
 }
 
 func (router *Router) Subscribe(c *Client) {
-	router.addchan <- c
+	router.subscribeChan <- c
 }
 func (router *Router) Unsubscribe(c *Client) {
-	router.rmchan <- c
+	router.unsubscribeChan <- c
 }
 func (router *Router) Publish(pubMsg *packets.PublishPacket) {
-	if pubMsg.Retain {
-		log.Printf("payload retained: %s\n", len(pubMsg.Payload))
-		if len(pubMsg.Payload) == 0 {
-			log.Printf("payload retained empty: %s, delete retained message\n", len(pubMsg.Payload))
-			delete(router.retainStore, pubMsg.TopicName)
-		} else {
-			router.retainStore[pubMsg.TopicName] = pubMsg
-		}
-	}
-	router.publishchan <- pubMsg
+	router.publishChan <- pubMsg
 }
+
 func (router *Router) RepublishRetainedMessages(c *Client, subMsg *packets.SubscribePacket) {
 	msgid := subMsg.MessageID
 	for _, pubMsg := range router.retainStore {
@@ -59,41 +51,51 @@ func (router *Router) RepublishRetainedMessages(c *Client, subMsg *packets.Subsc
 		msg := pubMsg.Copy()
 		msg.FixedHeader = pubMsg.FixedHeader
 		msg.MessageID = msgid
-
-		// check subscription match
-		publishingTopic := msg.TopicName
-		subscribed := c.IsSubscribed(publishingTopic)
-		if subscribed {
-			c.WritePublishMessage(msg)
-		}
+		sendMessageToClientIfMatch(c, msg)
 	}
 }
 
 func (router *Router) Start() {
-	go router.routeMessages()
+	go router.handleEvents()
 }
 
-func (router *Router) routeMessages() {
+func (router *Router) handleEvents() {
 	clients := router.clients
 	for {
 		select {
-		case msg := <-router.publishchan:
-			for _, c := range clients {
-				// check subscription match
-				publishingTopic := msg.TopicName
-				subscribed := c.IsSubscribed(publishingTopic)
-				if subscribed {
-					// TODO: look at mqtt specs for qos handling...
-					//msg.Qos = subscriptionQos
-					c.WritePublishMessage(msg)
+		case msg := <-router.publishChan:
+			// save if retain
+			if msg.Retain {
+				payloadLen := len(msg.Payload)
+				log.Printf("payload retained: %s\n", payloadLen)
+				if len(msg.Payload) == 0 {
+					log.Printf("payload retained empty: %s, delete retained message\n", payloadLen)
+					delete(router.retainStore, msg.TopicName)
+				} else {
+					router.retainStore[msg.TopicName] = msg
 				}
 			}
-
-		case c := <-router.addchan:
+			// foreach client send message that match topic
+			for _, c := range clients {
+				sendMessageToClientIfMatch(c, msg)
+			}
+		case c := <-router.subscribeChan:
 			router.addClient(c)
-		case c := <-router.rmchan:
+		case c := <-router.unsubscribeChan:
 			router.removeClient(c)
 		}
+	}
+}
+
+func sendMessageToClientIfMatch(client *Client, msg *packets.PublishPacket) {
+	// check subscription match
+	publishingTopic := msg.TopicName
+	subscribed := client.IsSubscribed(publishingTopic)
+	if subscribed {
+		log.Printf("sending message to client: %s topic: %s (%s)\n", client.ID, publishingTopic, subscribed)
+		// TODO: look at mqtt specs for qos handling...
+		//msg.Qos = subscriptionQos
+		client.WritePublishMessage(msg)
 	}
 }
 
@@ -106,4 +108,8 @@ func (r *Router) Disconnect(c *Client) {
 func (r *Router) Connected(c *Client) bool {
 	_, present := r.connectedClients[c.ID]
 	return present
+}
+func (r *Router) GetConnected(cid string) *Client {
+	c, _ := r.connectedClients[cid]
+	return c
 }
