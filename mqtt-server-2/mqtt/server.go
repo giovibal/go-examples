@@ -1,12 +1,12 @@
 package mqtt
 
 import (
-	"log"
-	"github.com/giovibal/go-examples/mqtt-server-2/packets"
-	"net"
 	"fmt"
-	"net/http"
+	"github.com/giovibal/go-examples/mqtt-server-2/packets"
 	"golang.org/x/net/websocket"
+	"log"
+	"net"
+	"net/http"
 	"time"
 )
 
@@ -44,9 +44,6 @@ func StartWebsocketServer(addr string, router *Router) {
 	//http.ListenAndServe(addr, nil)
 }
 
-
-
-
 func handleConnection(conn net.Conn, router *Router) {
 	//conn.(*net.TCPConn).SetKeepAlive(true)
 	//conn.(*net.TCPConn).SetKeepAlivePeriod(1 * time.Second)
@@ -77,7 +74,7 @@ func handleMqttProtocol(router *Router, client *Client) {
 			//msgType := cp.GetMessageType()
 			switch cp.(type) {
 
-			case *packets.ConnectPacket :
+			case *packets.ConnectPacket:
 				connectMsg := cp.(*packets.ConnectPacket)
 				client.ID = connectMsg.ClientIdentifier
 				client.CleanSession = connectMsg.CleanSession
@@ -133,7 +130,7 @@ func handleMqttProtocol(router *Router, client *Client) {
 						router.Connect(client)
 					}
 				} else {
-					router.Connect(client);
+					router.Connect(client)
 					log.Printf("New Client connected %s", client.ID)
 					connackMsg.SessionPresent = false
 				}
@@ -188,7 +185,7 @@ func handleMqttProtocol(router *Router, client *Client) {
 				client.Keepalive.Reset()
 				qos := cp.Details().Qos
 				pubMsg := cp.(*packets.PublishPacket)
-				log.Printf("%v: PUBLISH qos(%v)",client.ID, pubMsg.Qos)
+				log.Printf("%v: PUBLISH qos(%v)", client.ID, pubMsg.Qos)
 
 				switch qos {
 				case 0:
@@ -214,14 +211,14 @@ func handleMqttProtocol(router *Router, client *Client) {
 				client.queue.DequeueMessage()
 
 				pubAck := cp.(*packets.PubackPacket)
-				log.Printf("%v: PUBACK qos(%v)",client.ID, pubAck.Qos)
+				log.Printf("%v: PUBACK qos(%v)", client.ID, pubAck.Qos)
 				break
 
 			case *packets.PubrecPacket:
 				client.Keepalive.Reset()
 				// PUBREC (receiver) response to PUBLISH in QOS=2
 				pubRec := cp.(*packets.PubrecPacket)
-				log.Printf("%v: PUBREC qos(%v)",client.ID, pubRec.Qos)
+				log.Printf("%v: PUBREC qos(%v)", client.ID, pubRec.Qos)
 				pubRel := packets.NewControlPacket(packets.Pubrel).(*packets.PubrelPacket)
 				pubRel.MessageID = cp.Details().MessageID
 				client.outgoing <- pubRel
@@ -231,7 +228,7 @@ func handleMqttProtocol(router *Router, client *Client) {
 				client.Keepalive.Reset()
 				// PUBREL (sender) response to PUBREC in QOS=2
 				pubRel := cp.(*packets.PubrelPacket)
-				log.Printf("%v: PUBREL qos(%v)",client.ID, pubRel.Qos)
+				log.Printf("%v: PUBREL qos(%v)", client.ID, pubRel.Qos)
 				pubComp := packets.NewControlPacket(packets.Pubcomp).(*packets.PubcompPacket)
 				pubComp.MessageID = cp.Details().MessageID
 				client.outgoing <- pubComp
@@ -243,7 +240,7 @@ func handleMqttProtocol(router *Router, client *Client) {
 				client.queue.DequeueMessage()
 
 				pubComp := cp.(*packets.PubcompPacket)
-				log.Printf("%v: PUBCOMP qos(%v)",client.ID, pubComp.Qos)
+				log.Printf("%v: PUBCOMP qos(%v)", client.ID, pubComp.Qos)
 				break
 
 			case *packets.PingreqPacket:
@@ -276,12 +273,11 @@ func disconnectAbnormally(client *Client, router *Router) {
 	client.Quit()
 }
 
-
 func handleWillMessage(client *Client, router *Router) {
-	log.Printf("publish will message of client %s if present ...\n", client.ID);
+	log.Printf("publish will message of client %s if present ...\n", client.ID)
 	// publish will message if present ...
 	if client.WillMessage != nil {
-		log.Printf("will message topic[%s]\n", client.WillMessage.TopicName);
+		log.Printf("will message topic[%s]\n", client.WillMessage.TopicName)
 		client.WillMessage.MessageID = 1
 		router.Publish(client.WillMessage)
 	}

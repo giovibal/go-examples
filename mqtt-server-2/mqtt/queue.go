@@ -6,7 +6,7 @@ import (
 )
 
 type Queue struct {
-	queue             *list.List
+	queue *list.List
 }
 
 func NewQueue() *Queue {

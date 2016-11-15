@@ -1,9 +1,9 @@
 package mqtt
 
 import (
+	"log"
 	"testing"
 	"time"
-	"log"
 )
 
 func TestNewKeepalive(t *testing.T) {
@@ -17,24 +17,24 @@ func TestNewKeepalive(t *testing.T) {
 	log.Println("Start")
 	k.Start()
 
-	time.Sleep(2*time.Second)
+	time.Sleep(2 * time.Second)
 
 	log.Println("Reset 1")
 	k.Reset()
 
-	time.Sleep(2*time.Second)
+	time.Sleep(2 * time.Second)
 
 	log.Println("Reset 2")
 	k.Reset()
 
-	time.Sleep(5*time.Second)
+	time.Sleep(5 * time.Second)
 
 	// dovrebbe scattare qui
 
 	k.Reset()
 	log.Println("Reset 3")
 
-	time.Sleep(5*time.Second)
+	time.Sleep(5 * time.Second)
 
 	k.Stop()
 	log.Println("Stop")

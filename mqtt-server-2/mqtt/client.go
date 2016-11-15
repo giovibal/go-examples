@@ -3,24 +3,24 @@ package mqtt
 import (
 	"bufio"
 	"github.com/giovibal/go-examples/mqtt-server-2/packets"
-	"net"
 	"log"
+	"net"
 )
 
 type Client struct {
-	Conn              net.Conn
-	ID                string
-	CleanSession      bool
-	WillMessage       *packets.PublishPacket
-	Keepalive         *Keepalive
-	reader            *bufio.Reader
-	writer            *bufio.Writer
-	queue             *Queue
-	incoming          chan packets.ControlPacket
-	outgoing          chan packets.ControlPacket
-	Subscriptions     map[string]*Subscription
+	Conn          net.Conn
+	ID            string
+	CleanSession  bool
+	WillMessage   *packets.PublishPacket
+	Keepalive     *Keepalive
+	reader        *bufio.Reader
+	writer        *bufio.Writer
+	queue         *Queue
+	incoming      chan packets.ControlPacket
+	outgoing      chan packets.ControlPacket
+	Subscriptions map[string]*Subscription
 	//SubscriptionCache map[string]bool
-	quit              chan bool
+	quit chan bool
 }
 
 func NewClient(connection net.Conn) *Client {
@@ -28,15 +28,15 @@ func NewClient(connection net.Conn) *Client {
 	reader := bufio.NewReader(connection)
 
 	client := &Client{
-		Conn:              connection,
-		reader:            reader,
-		writer:            writer,
-		queue:             NewQueue(),
-		incoming:          make(chan packets.ControlPacket),
-		outgoing:          make(chan packets.ControlPacket),
-		Subscriptions:     make(map[string]*Subscription),
+		Conn:          connection,
+		reader:        reader,
+		writer:        writer,
+		queue:         NewQueue(),
+		incoming:      make(chan packets.ControlPacket),
+		outgoing:      make(chan packets.ControlPacket),
+		Subscriptions: make(map[string]*Subscription),
 		//SubscriptionCache: make(map[string]bool),
-		quit:              make(chan bool),
+		quit: make(chan bool),
 	}
 	return client
 }
@@ -134,7 +134,7 @@ func (client *Client) Start(router *Router) {
 
 func (client *Client) CopyTo(other *Client) {
 	//other.SubscriptionCache = client.SubscriptionCache
-	other.Subscriptions= client.Subscriptions
+	other.Subscriptions = client.Subscriptions
 	other.queue = client.queue
 }
 
@@ -147,5 +147,3 @@ func (client *Client) FlushQueuedMessages() {
 		}
 	}
 }
-
-

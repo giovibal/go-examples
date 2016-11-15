@@ -9,12 +9,12 @@ type Router struct {
 	clients          map[string]*Client
 	connectedClients map[string]*Client
 
-	publishChan      chan *packets.PublishPacket
-	subscribeChan    chan *Client
-	unsubscribeChan  chan *Client
+	publishChan     chan *packets.PublishPacket
+	subscribeChan   chan *Client
+	unsubscribeChan chan *Client
 
-	retainStore      map[string]*packets.PublishPacket
-	queues           map[string]*Queue
+	retainStore map[string]*packets.PublishPacket
+	queues      map[string]*Queue
 }
 
 func NewRouter() *Router {
