@@ -28,18 +28,19 @@ func StartTcpServer(laddr string, router *Router) {
 }
 
 func StartWebsocketServer(addr string, router *Router) {
-	// websocket
 	fmt.Printf("Listen on %s (websocket)\n", addr)
-
 	acceptConnection := func(ws *websocket.Conn) {
-		go handleConnection(ws, router)
+		handleConnection(ws, router)
 	}
-
-	http.Handle("/mqtt", websocket.Handler(acceptConnection))
-	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatal("ListenAndServe:", err)
+	handler := websocket.Handler(acceptConnection)
+	http.Handle("/mqtt", handler)
+	//if err := http.ListenAndServe(addr, nil); err != nil {
+	//	log.Fatal("ListenAndServe:", err)
+	//}
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		log.Fatal(err)
 	}
-	//http.ListenAndServe(addr, nil)
 }
 
 func handleConnection(conn net.Conn, router *Router) {
@@ -65,7 +66,7 @@ func handleMqttProtocol(router *Router, client *Client) {
 	for {
 		select {
 		case cp := <-client.incoming:
-			//log.Printf(">> %v \n", cp.String())
+			log.Printf(">> %v \n", cp.String())
 
 			//msgType := cp.GetMessageType()
 			switch cp.(type) {
