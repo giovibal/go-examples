@@ -19,8 +19,7 @@ type Client struct {
 	incoming      chan packets.ControlPacket
 	outgoing      chan packets.ControlPacket
 	Subscriptions map[string]*Subscription
-	//SubscriptionCache map[string]bool
-	quit chan bool
+	quit          chan bool
 }
 
 func NewClient(connection net.Conn) *Client {
@@ -35,8 +34,7 @@ func NewClient(connection net.Conn) *Client {
 		incoming:      make(chan packets.ControlPacket),
 		outgoing:      make(chan packets.ControlPacket),
 		Subscriptions: make(map[string]*Subscription),
-		//SubscriptionCache: make(map[string]bool),
-		quit: make(chan bool),
+		quit:          make(chan bool),
 	}
 	return client
 }
@@ -92,19 +90,6 @@ func (client *Client) waitForQuit() {
 	}
 }
 func (c *Client) IsSubscribed(publishingTopic string) (bool, byte) {
-	//_, present := c.SubscriptionCache[publishingTopic]
-	//if present {
-	//	return true
-	//} else {
-	//	for _, subscription := range c.Subscriptions {
-	//		if subscription.IsSubscribed(publishingTopic) {
-	//			c.SubscriptionCache[publishingTopic] = true
-	//			return true
-	//		}
-	//	}
-	//}
-	//return false
-
 	var ret bool
 	var qos byte
 	ret = false
@@ -133,7 +118,6 @@ func (client *Client) Start(router *Router) {
 }
 
 func (client *Client) CopyTo(other *Client) {
-	//other.SubscriptionCache = client.SubscriptionCache
 	other.Subscriptions = client.Subscriptions
 	other.queue = client.queue
 }

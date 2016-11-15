@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-//var clients = make(map[net.Conn]*Client)
-
 func StartTcpServer(laddr string, router *Router) {
 	ln, err := net.Listen("tcp", laddr)
 	if err != nil {
@@ -45,8 +43,6 @@ func StartWebsocketServer(addr string, router *Router) {
 }
 
 func handleConnection(conn net.Conn, router *Router) {
-	//conn.(*net.TCPConn).SetKeepAlive(true)
-	//conn.(*net.TCPConn).SetKeepAlivePeriod(1 * time.Second)
 	client := NewClient(conn)
 
 	defer func() {
