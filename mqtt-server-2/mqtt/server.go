@@ -66,7 +66,7 @@ func handleMqttProtocol(router *Router, client *Client) {
 	for {
 		select {
 		case cp := <-client.incoming:
-			log.Printf(">> %v \n", cp.String())
+			//log.Printf(">> %v \n", cp.String())
 
 			//msgType := cp.GetMessageType()
 			switch cp.(type) {

@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"github.com/giovibal/go-examples/mqtt-server-2/packets"
-	"log"
 )
 
 type Router struct {
@@ -69,9 +68,9 @@ func (router *Router) handleEvents() {
 			// save if retain
 			if msg.Retain {
 				payloadLen := len(msg.Payload)
-				log.Printf("payload retained: %s\n", payloadLen)
-				if len(msg.Payload) == 0 {
-					log.Printf("payload retained empty: %s, delete retained message\n", payloadLen)
+				//log.Printf("payload retained: %s\n", payloadLen)
+				if payloadLen == 0 {
+					//log.Printf("payload retained empty: %s, delete retained message\n", payloadLen)
 					delete(router.retainStore, msg.TopicName)
 				} else {
 					router.retainStore[msg.TopicName] = msg
