@@ -31,10 +31,10 @@ func NewClient(connection net.Conn) *Client {
 		reader:        reader,
 		writer:        writer,
 		queue:         NewQueue(),
-		incoming:      make(chan packets.ControlPacket, 8),
-		outgoing:      make(chan packets.ControlPacket, 8),
+		incoming:      make(chan packets.ControlPacket),
+		outgoing:      make(chan packets.ControlPacket),
 		Subscriptions: make(map[string]*Subscription),
-		quit:          make(chan bool, 4),
+		quit:          make(chan bool),
 	}
 	return client
 }
@@ -105,9 +105,6 @@ func (c *Client) IsSubscribed(publishingTopic string) (bool, byte) {
 	return ret, qos
 }
 func (c *Client) WritePublishMessage(msg *packets.PublishPacket) {
-	//go func(ch chan packets.ControlPacket) {
-	//	ch <- msg
-	//}(c.outgoing)
 	c.outgoing <- msg
 }
 

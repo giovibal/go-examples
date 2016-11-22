@@ -20,9 +20,9 @@ func NewRouter() *Router {
 	return &Router{
 		clients:          make(map[string]*Client),
 		connectedClients: make(map[string]*Client),
-		publishChan:      make(chan *packets.PublishPacket, 40),
-		subscribeChan:    make(chan *Client, 40),
-		unsubscribeChan:  make(chan *Client, 40),
+		publishChan:      make(chan *packets.PublishPacket),
+		subscribeChan:    make(chan *Client),
+		unsubscribeChan:  make(chan *Client),
 		retainStore:      make(map[string]*packets.PublishPacket),
 		queues:           make(map[string]*Queue),
 	}
