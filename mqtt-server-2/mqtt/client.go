@@ -31,10 +31,10 @@ func NewClient(connection net.Conn) *Client {
 		reader:        reader,
 		writer:        writer,
 		queue:         NewQueue(),
-		incoming:      make(chan packets.ControlPacket),
-		outgoing:      make(chan packets.ControlPacket),
+		incoming:      make(chan packets.ControlPacket, 40),
+		outgoing:      make(chan packets.ControlPacket, 40),
 		Subscriptions: make(map[string]*Subscription),
-		quit:          make(chan bool),
+		quit:          make(chan bool, 4),
 	}
 	return client
 }
