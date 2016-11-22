@@ -15,7 +15,7 @@ func NewQueue() *Queue {
 }
 
 func (q *Queue) EnqueueMessage(msg interface{}) {
-	//q.queue.PushBack(msg)
+	q.queue.PushBack(msg)
 }
 func (q *Queue) DequeueMessage() interface{} {
 	if q.queue.Len() > 0 {
