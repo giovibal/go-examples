@@ -17,7 +17,7 @@ func main() {
 	go mqtt.StartWebsocketServer(":11883", router)
 
 	// capture ctrl+c
-	c := make(chan os.Signal, 2)
+	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	select {
 	case <-c:
