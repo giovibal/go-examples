@@ -34,9 +34,7 @@ func StartWebsocketServer(addr string, router *Router) {
 	}
 	handler := websocket.Handler(acceptConnection)
 	http.Handle("/mqtt", handler)
-	//if err := http.ListenAndServe(addr, nil); err != nil {
-	//	log.Fatal("ListenAndServe:", err)
-	//}
+
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
 		log.Fatal(err)

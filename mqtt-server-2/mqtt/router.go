@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"github.com/giovibal/go-examples/mqtt-server-2/packets"
+	"sync"
 )
 
 type Router struct {
@@ -14,6 +15,8 @@ type Router struct {
 
 	retainStore map[string]*packets.PublishPacket
 	queues      map[string]*Queue
+
+	lock        sync.RWMutex
 }
 
 func NewRouter() *Router {
@@ -25,13 +28,18 @@ func NewRouter() *Router {
 		unsubscribeChan:  make(chan *Client),
 		retainStore:      make(map[string]*packets.PublishPacket),
 		queues:           make(map[string]*Queue),
+		lock:             sync.RWMutex{},
 	}
 }
 
 func (router *Router) addClient(c *Client) {
+	router.lock.Lock()
+	defer router.lock.Unlock()
 	router.clients[c.ID] = c
 }
 func (router *Router) removeClient(c *Client) {
+	router.lock.Lock()
+	defer router.lock.Unlock()
 	delete(router.clients, c.ID)
 }
 
@@ -108,16 +116,24 @@ func sendMessageToClientIfMatch(client *Client, msg *packets.PublishPacket) {
 }
 
 func (r *Router) Connect(c *Client) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	r.connectedClients[c.ID] = c
 }
 func (r *Router) Disconnect(c *Client) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	delete(r.connectedClients, c.ID)
 }
 func (r *Router) Connected(c *Client) bool {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
 	_, present := r.connectedClients[c.ID]
 	return present
 }
 func (r *Router) GetConnected(client_id string) *Client {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
 	c, _ := r.connectedClients[client_id]
 	return c
 }

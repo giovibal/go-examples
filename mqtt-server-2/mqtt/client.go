@@ -55,11 +55,11 @@ func (client *Client) Write() {
 		//log.Printf(">> %v \n", data)
 		err := data.Write(client.writer)
 		if err != nil {
-			log.Println(err)
+			//log.Println("write ", client.ID, " ",  err)
 		}
 		err2 := client.writer.Flush()
 		if err2 != nil {
-			log.Println(err)
+			//log.Println("flush ", client.ID, " ", err)
 
 			// enqueue messsage if error and cleanSession is false
 			if !client.CleanSession {
