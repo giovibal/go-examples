@@ -24,6 +24,7 @@ type Client struct {
 
 func NewClient(connection net.Conn) *Client {
 	writer := bufio.NewWriter(connection)
+	//writer := bufio.NewWriterSize(connection, (4096*16))
 	reader := bufio.NewReader(connection)
 
 	client := &Client{
