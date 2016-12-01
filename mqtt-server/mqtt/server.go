@@ -2,7 +2,7 @@ package mqtt
 
 import (
 	"fmt"
-	"github.com/giovibal/go-examples/mqtt-server-2/packets"
+	"github.com/giovibal/go-examples/mqtt-server/packets"
 	"golang.org/x/net/websocket"
 	"log"
 	"net"

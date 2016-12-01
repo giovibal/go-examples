@@ -1,7 +1,7 @@
 package mqtt
 
 import (
-	"github.com/giovibal/go-examples/mqtt-server-2/packets"
+	"github.com/giovibal/go-examples/mqtt-server/packets"
 	"sync"
 )
 

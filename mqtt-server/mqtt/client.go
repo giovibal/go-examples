@@ -2,7 +2,7 @@ package mqtt
 
 import (
 	"bufio"
-	"github.com/giovibal/go-examples/mqtt-server-2/packets"
+	"github.com/giovibal/go-examples/mqtt-server/packets"
 	"log"
 	"net"
 )

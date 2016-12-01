@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/giovibal/go-examples/mqtt-server-2/mqtt"
+	"github.com/giovibal/go-examples/mqtt-server/mqtt"
 	"os"
 	"os/signal"
 	"syscall"
