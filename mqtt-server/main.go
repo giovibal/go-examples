@@ -39,7 +39,6 @@ func main() {
 	//	f.Close()
 	//}
 
-
 	router := mqtt.NewRouter()
 	router.Start()
 

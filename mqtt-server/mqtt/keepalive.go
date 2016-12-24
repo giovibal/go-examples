@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"time"
+	"sync"
 )
 
 type Keepalive struct {
@@ -9,6 +10,7 @@ type Keepalive struct {
 	ExpiredCallback func(t time.Time)
 	expired         bool
 	ticker          *time.Ticker
+	lock            sync.RWMutex
 }
 
 func NewKeepalive(seconds uint16) *Keepalive {
@@ -16,18 +18,32 @@ func NewKeepalive(seconds uint16) *Keepalive {
 		return &Keepalive{
 			Duration: 0,
 			expired:  false,
+			lock:     sync.RWMutex{},
 		}
 	} else {
 		duration := time.Millisecond * time.Duration(seconds*1500)
 		return &Keepalive{
 			Duration: duration,
 			expired:  false,
+			lock:     sync.RWMutex{},
 		}
 	}
 }
 
 func (k *Keepalive) Reset() {
+	k.lock.Lock()
 	k.expired = false
+	k.lock.Unlock()
+}
+func (k *Keepalive) IsExpired() bool {
+	k.lock.RLock()
+	defer k.lock.RUnlock()
+	return k.expired
+}
+func (k *Keepalive) Expired() {
+	k.lock.Lock()
+	k.expired = true
+	k.lock.Unlock()
 }
 func (k *Keepalive) Start() {
 	/*
@@ -44,10 +60,10 @@ func (k *Keepalive) Start() {
 	go func() {
 		for t := range k.ticker.C {
 			//log.Printf("Keepalive tiker: %v\n", t)
-			if k.expired {
+			if k.IsExpired() {
 				k.ExpiredCallback(t)
 			} else {
-				k.expired = true
+				k.Expired()
 			}
 		}
 	}()

@@ -56,18 +56,43 @@ func (router *Router) Publish(pubMsg *packets.PublishPacket) {
 }
 
 func (router *Router) RepublishRetainedMessages(c *Client, subMsg *packets.SubscribePacket) {
+	//router.lock.RLock()
 	msgid := subMsg.MessageID
-	for _, pubMsg := range router.retainStore {
+	retainedMessages := router.GetRetainedMessages()
+	for _, msg := range retainedMessages {
 		msgid++
-		msg := pubMsg.Copy()
-		msg.FixedHeader = pubMsg.FixedHeader
+		msg.FixedHeader = msg.FixedHeader
 		msg.MessageID = msgid
 		sendMessageToClientIfMatch(c, msg)
 	}
+	//router.lock.RUnlock()
 }
 
 func (router *Router) Start() {
 	go router.handleEvents()
+}
+
+func (router *Router) SetRetained(msg *packets.PublishPacket) {
+	router.lock.Lock()
+	router.retainStore[msg.TopicName] = msg
+	router.lock.Unlock()
+}
+func (router *Router) DeleteRetained(msg *packets.PublishPacket) {
+	router.lock.Lock()
+	delete(router.retainStore, msg.TopicName)
+	router.lock.Unlock()
+}
+func (router *Router) GetRetainedMessages() []*packets.PublishPacket {
+	router.lock.RLock()
+	defer router.lock.RUnlock()
+	list := make([]*packets.PublishPacket, len(router.retainStore))
+	i := 0
+	for _, pubMsg := range router.retainStore {
+		msg := pubMsg.Copy()
+		list[i] = msg
+		i++
+	}
+	return list
 }
 
 func (router *Router) handleEvents() {
@@ -81,9 +106,11 @@ func (router *Router) handleEvents() {
 				//log.Printf("payload retained: %s\n", payloadLen)
 				if payloadLen == 0 {
 					//log.Printf("payload retained empty: %s, delete retained message\n", payloadLen)
-					delete(router.retainStore, msg.TopicName)
+					//delete(router.retainStore, msg.TopicName)
+					router.DeleteRetained(msg)
 				} else {
-					router.retainStore[msg.TopicName] = msg
+					//router.retainStore[msg.TopicName] = msg
+					router.SetRetained(msg)
 				}
 			}
 			// foreach client send message that match topic
@@ -98,8 +125,9 @@ func (router *Router) handleEvents() {
 	}
 }
 
-func sendMessageToClientIfMatch(client *Client, msg *packets.PublishPacket) {
+func sendMessageToClientIfMatch(client *Client, pubmsg *packets.PublishPacket) {
 	// check subscription match
+	msg := pubmsg.Copy()
 	publishingTopic := msg.TopicName
 	subscribed, subscriptionQos := client.IsSubscribed(publishingTopic)
 	if subscribed {
