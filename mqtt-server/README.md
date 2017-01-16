@@ -1,3 +1,10 @@
+# Code structure
+
+A CLIENT CONNECT TO MQTT-SERVER
+1. server -> when a new connection arrive, new router to handle mqtt protocol, new client to handle connection 
+2. client -> starts 2 go routines: read, write from tcp connection to instance channels (incoming, outgoing)
+3. router -> manage al list of connected clients and dispatch message to subscribed clients.
+
 # Mqtt Broker POC
 
 ## Stats
